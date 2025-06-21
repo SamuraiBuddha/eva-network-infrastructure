@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVA Network Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a0a;
+            color: #00ff00;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Matrix Rain Background */
+        #matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .node-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .node-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .node-card:hover {
+            border-color: #00ffff;
+            box-shadow: 0 0 20px #00ffff;
+            transform: translateY(-5px);
+        }
+
+        .node-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #00ff00, #00ffff, #ff00ff);
+            border-radius: 10px;
+            opacity: 0;
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+
+        .node-card:hover::before {
+            opacity: 1;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .node-name {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .node-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        .status-online {
+            background-color: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-offline {
+            background-color: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .status-warning {
+            background-color: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .node-info {
+            margin-bottom: 10px;
+        }
+
+        .info-label {
+            color: #00ffff;
+            margin-right: 10px;
+        }
+
+        .services {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #00ff00;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            padding: 5px;
+            background: rgba(0, 255, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+
+        .terminal-log {
+            background: #000;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .node-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-rain"></canvas>
+    
+    <div class="container">
+        <h1>EVA NETWORK CONTROL</h1>
+        
+        <div class="node-grid">
+            <!-- Lilith -->
+            <div class="node-card" data-node="lilith">
+                <div class="node-header">
+                    <div class="node-name">LILITH</div>
+                    <div class="node-status status-online"></div>
+                </div>
+                <div class="node-info">
+                    <div><span class="info-label">Role:</span>Primary AI NAS</div>
+                    <div><span class="info-label">IP:</span>192.168.50.10</div>
+                    <div><span class="info-label">CPU:</span>Intel i3 N305</div>
+                    <div><span class="info-label">RAM:</span>16GB DDR5</div>
+                </div>
+                <div class="services">
+                    <div class="service-item">
+                        <span>Portainer</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Neo4j</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Blockchain</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adam -->
+            <div class="node-card" data-node="adam">
+                <div class="node-header">
+                    <div class="node-name">ADAM</div>
+                    <div class="node-status status-online"></div>
+                </div>
+                <div class="node-info">
+                    <div><span class="info-label">Role:</span>Business Storage</div>
+                    <div><span class="info-label">IP:</span>192.168.50.11</div>
+                    <div><span class="info-label">CPU:</span>Celeron N5105</div>
+                    <div><span class="info-label">RAM:</span>32GB DDR4</div>
+                </div>
+                <div class="services">
+                    <div class="service-item">
+                        <span>Samba</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Freshbooks</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Backup</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Melchior -->
+            <div class="node-card" data-node="melchior">
+                <div class="node-header">
+                    <div class="node-name">MELCHIOR</div>
+                    <div class="node-status status-online"></div>
+                </div>
+                <div class="node-info">
+                    <div><span class="info-label">Role:</span>Dev Workstation</div>
+                    <div><span class="info-label">IP:</span>DHCP</div>
+                    <div><span class="info-label">ENV:</span>WSL2 Ubuntu</div>
+                    <div><span class="info-label">RAM:</span>24GB Allocated</div>
+                </div>
+                <div class="services">
+                    <div class="service-item">
+                        <span>Docker</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Claude</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>MCP Dev</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balthazar -->
+            <div class="node-card" data-node="balthazar">
+                <div class="node-header">
+                    <div class="node-name">BALTHAZAR</div>
+                    <div class="node-status status-warning"></div>
+                </div>
+                <div class="node-info">
+                    <div><span class="info-label">Role:</span>GPU Compute</div>
+                    <div><span class="info-label">IP:</span>192.168.50.20</div>
+                    <div><span class="info-label">GPU:</span>NVIDIA RTX</div>
+                    <div><span class="info-label">Temp:</span><span id="balthazar-temp">72°C</span></div>
+                </div>
+                <div class="services">
+                    <div class="service-item">
+                        <span>ComfyUI</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>AI Worker</span>
+                        <span class="status-online">✓</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Temp Monitor</span>
+                        <span class="status-warning">!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Caspar -->
+            <div class="node-card" data-node="caspar">
+                <div class="node-header">
+                    <div class="node-name">CASPAR</div>
+                    <div class="node-status status-offline"></div>
+                </div>
+                <div class="node-info">
+                    <div><span class="info-label">Role:</span>Bridge Node</div>
+                    <div><span class="info-label">IP:</span>192.168.50.21</div>
+                    <div><span class="info-label">SSH:</span>Port 9222</div>
+                    <div><span class="info-label">Status:</span>Auth Issues</div>
+                </div>
+                <div class="services">
+                    <div class="service-item">
+                        <span>My Girl Friday</span>
+                        <span class="status-offline">×</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Win Bridge</span>
+                        <span class="status-offline">×</span>
+                    </div>
+                    <div class="service-item">
+                        <span>Portainer</span>
+                        <span class="status-offline">×</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <div class="stat-value" id="total-storage">28TB</div>
+                <div>Total Storage</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="active-nodes">4/5</div>
+                <div>Active Nodes</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="blockchain-height">42,337</div>
+                <div>Block Height</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="gpu-usage">87%</div>
+                <div>GPU Usage</div>
+            </div>
+        </div>
+
+        <div class="terminal-log" id="log-output">
+            <div class="log-entry">[2025-06-21 12:25:00] EVA Network initialization started...</div>
+            <div class="log-entry">[2025-06-21 12:25:01] Lilith online - Core services starting...</div>
+            <div class="log-entry">[2025-06-21 12:25:02] Adam online - Business encryption active...</div>
+            <div class="log-entry">[2025-06-21 12:25:03] Melchior connected - Development ready...</div>
+            <div class="log-entry">[2025-06-21 12:25:04] Balthazar GPU detected - Temperature monitoring active...</div>
+            <div class="log-entry">[2025-06-21 12:25:05] WARNING: Caspar SSH authentication failed on port 9222...</div>
+        </div>
+    </div>
+
+    <script>
+        // Matrix Rain Effect
+        const canvas = document.getElementById('matrix-rain');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "EVANGELION01エヴァンゲリオンLILITHADAN";
+        const matrixArray = matrix.split("");
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+
+        for (let x = 0; x < columns; x++) {
+            drops[x] = Math.random() * canvas.height / fontSize;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = matrixArray[Math.floor(Math.random() * matrixArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 35);
+
+        // Simulate temperature updates
+        setInterval(() => {
+            const temp = 68 + Math.floor(Math.random() * 10);
+            document.getElementById('balthazar-temp').textContent = temp + '°C';
+            
+            const tempNode = document.querySelector('[data-node="balthazar"] .node-status');
+            if (temp > 75) {
+                tempNode.className = 'node-status status-warning';
+            } else {
+                tempNode.className = 'node-status status-online';
+            }
+        }, 5000);
+
+        // Simulate blockchain height
+        let blockHeight = 42337;
+        setInterval(() => {
+            blockHeight += Math.floor(Math.random() * 3) + 1;
+            document.getElementById('blockchain-height').textContent = blockHeight.toLocaleString();
+        }, 3000);
+
+        // Simulate GPU usage
+        setInterval(() => {
+            const usage = 75 + Math.floor(Math.random() * 20);
+            document.getElementById('gpu-usage').textContent = usage + '%';
+        }, 2000);
+
+        // Add new log entries
+        const logOutput = document.getElementById('log-output');
+        const logMessages = [
+            "Blockchain validator syncing with peers...",
+            "Neo4j query executed in 0.042s...",
+            "ComfyUI generated image in 3.7s...",
+            "Backup task completed for Adam datasets...",
+            "Temperature alert: Balthazar GPU approaching threshold...",
+            "MCP Orchestrator routing completed...",
+            "Freshbooks blockchain transaction confirmed...",
+            "Memory consensus achieved across nodes..."
+        ];
+
+        setInterval(() => {
+            const timestamp = new Date().toLocaleString('en-US', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false 
+            }).replace(',', '');
+            
+            const message = logMessages[Math.floor(Math.random() * logMessages.length)];
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${timestamp}] ${message}`;
+            
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            // Remove old entries if too many
+            if (logOutput.children.length > 20) {
+                logOutput.removeChild(logOutput.firstChild);
+            }
+        }, 4000);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
